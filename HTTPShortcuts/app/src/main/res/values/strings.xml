@@ -758,4 +758,6 @@
     <string name="subtitle_parameter_value_files">Files</string>
     <!-- Settings option: Used in language picker to allow user to pick the default language, i.e., the system language -->
     <string name="language_default">System Default</string>
+    <!-- Instructions: Shown in toast to inform user that they should select or create a shortcut to be placed on the home screen -->
+    <string name="instructions_select_shortcut_for_home_screen">Select or create a shortcut to place it on the home screen.</string>
 </resources>

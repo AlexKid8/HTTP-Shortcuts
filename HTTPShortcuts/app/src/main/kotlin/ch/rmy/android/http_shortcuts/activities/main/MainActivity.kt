@@ -30,12 +30,14 @@ import ch.rmy.android.http_shortcuts.extensions.consume
 import ch.rmy.android.http_shortcuts.extensions.logException
 import ch.rmy.android.http_shortcuts.extensions.restartWithoutAnimation
 import ch.rmy.android.http_shortcuts.extensions.showSnackbar
+import ch.rmy.android.http_shortcuts.extensions.showToast
 import ch.rmy.android.http_shortcuts.extensions.startActivity
 import ch.rmy.android.http_shortcuts.extensions.visible
 import ch.rmy.android.http_shortcuts.http.ExecutionScheduler
 import ch.rmy.android.http_shortcuts.utils.IntentUtil
 import ch.rmy.android.http_shortcuts.utils.LauncherShortcutManager
 import ch.rmy.android.http_shortcuts.utils.SelectionMode
+import ch.rmy.android.http_shortcuts.widget.WidgetManager
 import ch.rmy.curlcommand.CurlCommand
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -50,6 +52,9 @@ class MainActivity : BaseActivity(), ListFragment.TabHost {
 
     private val selectionMode by lazy {
         SelectionMode.determineMode(intent.action)
+    }
+    private val widgetId by lazy {
+        WidgetManager.getWidgetIdFromIntent(intent)
     }
 
     private val categories by lazy {
@@ -76,6 +81,14 @@ class MainActivity : BaseActivity(), ListFragment.TabHost {
 
         if (selectionMode === SelectionMode.NORMAL) {
             showStartupDialogs()
+        } else {
+            if (selectionMode == SelectionMode.HOME_SCREEN_WIDGET_PLACEMENT) {
+                setResult(Activity.RESULT_CANCELED, WidgetManager.getIntent(widgetId))
+            }
+            if (selectionMode == SelectionMode.HOME_SCREEN_WIDGET_PLACEMENT
+                || selectionMode == SelectionMode.HOME_SCREEN_SHORTCUT_PLACEMENT) {
+                showToast(R.string.instructions_select_shortcut_for_home_screen, long = true)
+            }
         }
 
         ExecutionScheduler.schedule(context)
@@ -145,9 +158,11 @@ class MainActivity : BaseActivity(), ListFragment.TabHost {
         viewModel.getLiveToolbarTitle().observe(this, Observer { title ->
             setTitle(title.ifEmpty { context.getString(R.string.app_name) })
         })
-        toolbar!!.children.firstOrNull { it is TextView }?.setOnClickListener {
-            if (!viewModel.isAppLocked()) {
-                showToolbarTitleChangeDialog()
+        if (selectionMode === SelectionMode.NORMAL) {
+            toolbar!!.children.firstOrNull { it is TextView }?.setOnClickListener {
+                if (!viewModel.isAppLocked()) {
+                    showToolbarTitleChangeDialog()
+                }
             }
         }
     }
@@ -236,13 +251,14 @@ class MainActivity : BaseActivity(), ListFragment.TabHost {
 
     override fun selectShortcut(shortcut: Shortcut) {
         when (selectionMode) {
-            SelectionMode.HOME_SCREEN -> returnForHomeScreen(shortcut)
+            SelectionMode.HOME_SCREEN_SHORTCUT_PLACEMENT -> returnForHomeScreenShortcutPlacement(shortcut)
+            SelectionMode.HOME_SCREEN_WIDGET_PLACEMENT -> returnForHomeScreenWidgetPlacement(shortcut)
             SelectionMode.PLUGIN -> returnForPlugin(shortcut)
             SelectionMode.NORMAL -> Unit
         }
     }
 
-    private fun returnForHomeScreen(shortcut: Shortcut) {
+    private fun returnForHomeScreenShortcutPlacement(shortcut: Shortcut) {
         if (LauncherShortcutManager.supportsPinning(context)) {
             DialogBuilder(context)
                 .title(R.string.title_select_placement_method)
@@ -266,6 +282,12 @@ class MainActivity : BaseActivity(), ListFragment.TabHost {
         finish()
     }
 
+    private fun returnForHomeScreenWidgetPlacement(shortcut: Shortcut) {
+        WidgetManager.updateWidget(context, shortcut, widgetId)
+        setResult(Activity.RESULT_OK, WidgetManager.getIntent(widgetId))
+        finish()
+    }
+
     private fun returnForPlugin(shortcut: Shortcut) {
         val intent = Intent()
         intent.putExtra(EXTRA_SELECTION_ID, shortcut.id)
@@ -277,7 +299,7 @@ class MainActivity : BaseActivity(), ListFragment.TabHost {
     override val navigateUpIcon = 0
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        if (isRealmAvailable) {
+        if (isRealmAvailable && selectionMode === SelectionMode.NORMAL) {
             if (viewModel.isAppLocked()) {
                 menuInflater.inflate(R.menu.locked_main_activity_menu, menu)
             } else {
