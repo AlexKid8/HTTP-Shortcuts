@@ -16,7 +16,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import ch.rmy.android.http_shortcuts.R
 import ch.rmy.android.http_shortcuts.activities.BaseActivity
-import ch.rmy.android.http_shortcuts.activities.misc.LicensesActivity
+import ch.rmy.android.http_shortcuts.activities.misc.AcknowledgmentActivity
 import ch.rmy.android.http_shortcuts.dialogs.ChangeLogDialog
 import ch.rmy.android.http_shortcuts.dialogs.DialogBuilder
 import ch.rmy.android.http_shortcuts.dialogs.HelpDialogBuilder
@@ -358,7 +358,7 @@ class SettingsActivity : BaseActivity() {
         }
 
         private fun showLicenses() {
-            LicensesActivity.IntentBuilder(context!!)
+            AcknowledgmentActivity.IntentBuilder(context!!)
                 .build()
                 .startActivity(this)
         }
